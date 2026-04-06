@@ -313,7 +313,7 @@ func TestPreRunEValidation(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name:        "given_no_input_source_when_prerune_then_returns_error",
+			name:        "given no input source when prerune then returns error",
 			args:        []string{},
 			setup:       func() { resetGenerateFlags(generateCmd) },
 			expectError: true,
@@ -350,7 +350,7 @@ func TestPreRunEValidationPartialCSVInputs(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name: "given_model_csv_without_component_csv_when_prerune_then_returns_missing_component_csv_error",
+			name: "given model csv without component csv when prerune then returns missing component csv error",
 			flagValues: map[string]string{
 				"model-csv": "models.csv",
 			},
@@ -358,7 +358,7 @@ func TestPreRunEValidationPartialCSVInputs(t *testing.T) {
 			errorMsg:    "--component-csv is required when --model-csv is provided",
 		},
 		{
-			name: "given_component_csv_without_model_csv_when_prerune_then_returns_missing_model_csv_error",
+			name: "given component csv without model csv when prerune then returns missing model csv error",
 			flagValues: map[string]string{
 				"component-csv": "components.csv",
 			},
@@ -366,7 +366,7 @@ func TestPreRunEValidationPartialCSVInputs(t *testing.T) {
 			errorMsg:    "--model-csv is required when --component-csv is provided",
 		},
 		{
-			name: "given_relationship_csv_without_model_and_component_csv_when_prerune_then_returns_relationship_usage_error",
+			name: "given relationship csv without model and component csv when prerune then returns relationship usage error",
 			flagValues: map[string]string{
 				"relationship-csv": "relationships.csv",
 			},
@@ -395,7 +395,7 @@ func TestPreRunEValidationPartialCSVInputs(t *testing.T) {
 }
 
 func TestPreRunEValidationValidPathsNoRegression(t *testing.T) {
-	t.Run("given_complete_csv_mode_with_relationship_csv_when_prerune_then_no_error", func(t *testing.T) {
+	t.Run("given complete csv mode with relationship csv when prerune then no error", func(t *testing.T) {
 		resetGenerateFlags(generateCmd)
 		tmpDir := t.TempDir()
 		modelPath := createTempCSVFile(t, tmpDir, "models.csv")
@@ -410,7 +410,7 @@ func TestPreRunEValidationValidPathsNoRegression(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("given_spreadsheet_mode_when_prerune_then_no_error", func(t *testing.T) {
+	t.Run("given spreadsheet mode when prerune then no error", func(t *testing.T) {
 		resetGenerateFlags(generateCmd)
 		assert.NoError(t, generateCmd.PersistentFlags().Set("spreadsheet-id", "sheet-id"))
 		assert.NoError(t, generateCmd.PersistentFlags().Set("spreadsheet-cred", "dummy-cred"))
@@ -419,7 +419,7 @@ func TestPreRunEValidationValidPathsNoRegression(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("given_registrant_mode_when_prerune_then_no_error", func(t *testing.T) {
+	t.Run("given registrant mode when prerune then no error", func(t *testing.T) {
 		resetGenerateFlags(generateCmd)
 		assert.NoError(t, generateCmd.PersistentFlags().Set("registrant-def", "conn-def"))
 		assert.NoError(t, generateCmd.PersistentFlags().Set("registrant-cred", "cred-def"))
@@ -428,7 +428,7 @@ func TestPreRunEValidationValidPathsNoRegression(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("given_directory_mode_when_prerune_then_no_error", func(t *testing.T) {
+	t.Run("given directory mode when prerune then no error", func(t *testing.T) {
 		resetGenerateFlags(generateCmd)
 		assert.NoError(t, generateCmd.PersistentFlags().Set("directory", t.TempDir()))
 
