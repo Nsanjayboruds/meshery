@@ -368,9 +368,9 @@ func (h *Handler) loadTestHelperHandler(w http.ResponseWriter, req *http.Request
 
 	respChan := make(chan *models.LoadTestResponse, 100)
 	endChan := make(chan struct{})
-	defer close(endChan)
 
 	go func() {
+		defer close(endChan)
 		defer func() {
 			if r := recover(); r != nil {
 				h.log.Error(ErrPanicRecovery(r))
@@ -391,7 +391,6 @@ func (h *Handler) loadTestHelperHandler(w http.ResponseWriter, req *http.Request
 				h.log.Debug("Flushed the messages on the wire...")
 			}
 		}
-		endChan <- struct{}{}
 		h.log.Debug("response channel closed")
 	}()
 	go func() {
