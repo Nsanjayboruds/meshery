@@ -380,8 +380,8 @@ func (h *Handler) loadTestHelperHandler(w http.ResponseWriter, req *http.Request
 			bd, err := json.Marshal(data)
 			if err != nil {
 				h.log.Error(models.ErrMarshal(err, "meshery result for shipping"))
-				http.Error(w, models.ErrMarshal(err, "meshery result for shipping").Error(), http.StatusInternalServerError)
-				return
+				// Keep draining the stream to avoid blocking the producer goroutine.
+				continue
 			}
 
 			h.log.Debug("received new data on response channel")
@@ -394,9 +394,14 @@ func (h *Handler) loadTestHelperHandler(w http.ResponseWriter, req *http.Request
 		h.log.Debug("response channel closed")
 	}()
 	go func() {
+		defer close(respChan)
+		defer func() {
+			if r := recover(); r != nil {
+				h.log.Error(ErrPanicRecovery(r))
+			}
+		}()
 		ctx := context.Background()
 		h.executeLoadTest(ctx, req, profileID, testName, meshName, testUUID, prefObj, provider, loadTestOptions, respChan)
-		close(respChan)
 	}()
 	select {
 	case <-notify.Done():
