@@ -352,6 +352,10 @@ func (h *Handler) loadTestHelperHandler(w http.ResponseWriter, req *http.Request
 
 	notify := req.Context()
 
+	// Channel ownership contract:
+	// - The producer goroutine closes respChan after executeLoadTest returns.
+	// - The streaming goroutine closes endChan after respChan is fully drained.
+	// This prevents send-on-closed-channel races during client disconnects.
 	respChan := make(chan *models.LoadTestResponse, 100)
 	endChan := make(chan struct{})
 
