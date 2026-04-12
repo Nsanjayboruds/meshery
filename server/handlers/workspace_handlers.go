@@ -150,7 +150,7 @@ func (h *Handler) UpdateWorkspaceHandler(w http.ResponseWriter, req *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(respJSON)
 	if err != nil {
-		h.log.Error(ErrGetResult(err))
+		h.log.Error(ErrWriteResponse(err))
 		return
 	}
 }

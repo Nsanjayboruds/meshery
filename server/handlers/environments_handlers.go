@@ -148,7 +148,7 @@ func (h *Handler) UpdateEnvironmentHandler(w http.ResponseWriter, req *http.Requ
 	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(respJSON)
 	if err != nil {
-		h.log.Error(ErrGetResult(err))
+		h.log.Error(ErrWriteResponse(err))
 		return
 	}
 }
