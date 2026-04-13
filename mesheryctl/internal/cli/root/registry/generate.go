@@ -152,7 +152,7 @@ mesheryctl registry generate --spreadsheet-id "1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tu
 		}
 
 		if err := mesheryctlflags.ValidateCmdFlags(cmd, &registryGenerateFlags); err != nil {
-			return utils.ErrInvalidArgument(errors.New(utils.RegistryError(err.Error(), "generate")))
+			return err
 		}
 
 		spreadsheeetID = registryGenerateFlags.SpreadsheetID
