@@ -63,49 +63,44 @@ type cmdRegistryGenerateFlags struct {
 }
 
 var registryGenerateFlags cmdRegistryGenerateFlags
-var registryGenerateValidationOnce sync.Once
 
 func registerRegistryGenerateCustomValidations() error {
 	flagValidator := mesheryctlflags.GetFlagValidator()
-	var registerErr error
 
-	registryGenerateValidationOnce.Do(func() {
-		registerErr = flagValidator.Validator.RegisterValidation("registry-generate-model-csv-requires-component", func(fl validator.FieldLevel) bool {
-			flags, ok := fl.Parent().Interface().(cmdRegistryGenerateFlags)
-			if !ok || flags.ModelCSV == "" {
-				return true
-			}
-
-			return flags.ComponentCSV != ""
-		})
-		if registerErr != nil {
-			return
+	err := flagValidator.Validator.RegisterValidation("registry-generate-model-csv-requires-component", func(fl validator.FieldLevel) bool {
+		flags, ok := fl.Parent().Interface().(cmdRegistryGenerateFlags)
+		if !ok || flags.ModelCSV == "" {
+			return true
 		}
 
-		registerErr = flagValidator.Validator.RegisterValidation("registry-generate-component-csv-requires-model", func(fl validator.FieldLevel) bool {
-			flags, ok := fl.Parent().Interface().(cmdRegistryGenerateFlags)
-			if !ok || flags.ComponentCSV == "" {
-				return true
-			}
-
-			return flags.ModelCSV != ""
-		})
-		if registerErr != nil {
-			return
-		}
-
-		registerErr = flagValidator.Validator.RegisterValidation("registry-generate-relationship-csv-requires-model-and-component", func(fl validator.FieldLevel) bool {
-			flags, ok := fl.Parent().Interface().(cmdRegistryGenerateFlags)
-			if !ok || flags.RelationshipCSV == "" {
-				return true
-			}
-
-			return flags.ModelCSV != "" && flags.ComponentCSV != ""
-		})
+		return flags.ComponentCSV != ""
 	})
+	if err != nil {
+		return err
+	}
 
-	if registerErr != nil {
-		return registerErr
+	err = flagValidator.Validator.RegisterValidation("registry-generate-component-csv-requires-model", func(fl validator.FieldLevel) bool {
+		flags, ok := fl.Parent().Interface().(cmdRegistryGenerateFlags)
+		if !ok || flags.ComponentCSV == "" {
+			return true
+		}
+
+		return flags.ModelCSV != ""
+	})
+	if err != nil {
+		return err
+	}
+
+	err = flagValidator.Validator.RegisterValidation("registry-generate-relationship-csv-requires-model-and-component", func(fl validator.FieldLevel) bool {
+		flags, ok := fl.Parent().Interface().(cmdRegistryGenerateFlags)
+		if !ok || flags.RelationshipCSV == "" {
+			return true
+		}
+
+		return flags.ModelCSV != "" && flags.ComponentCSV != ""
+	})
+	if err != nil {
+		return err
 	}
 
 	flagValidator.CustomErrors["registry-generate-model-csv-requires-component"] = "--component-csv is required when --model-csv is provided"
