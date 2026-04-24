@@ -166,6 +166,7 @@ const (
 	ErrServeSchemaCode                     = "meshery-server-1381"
 	ErrInvalidFileRequestCode              = "meshery-server-1382"
 	ErrReadFileContentCode                 = "meshery-server-1383"
+	ErrExtensionEndpointNotRegisteredCode  = "meshery-server-1384"
 )
 
 var (
@@ -694,4 +695,7 @@ func ErrInvalidFileRequest(err error) error {
 }
 func ErrReadFileContent(err error, file string) error {
 	return errors.New(ErrReadFileContentCode, errors.Alert, []string{"Failed to read file content", file}, []string{err.Error()}, []string{"The file could not be opened or streamed to the response"}, []string{"Verify the file exists and the server has permission to read it"})
+}
+func ErrExtensionEndpointNotRegistered(endpoint string) error {
+	return errors.New(ErrExtensionEndpointNotRegisteredCode, errors.Alert, []string{"No extension is registered for endpoint: ", endpoint}, []string{}, []string{"Requested extension is not loaded into this Meshery server"}, []string{"Install the extension or check that its provider registered the route on startup"})
 }

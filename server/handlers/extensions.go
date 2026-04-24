@@ -32,7 +32,7 @@ func (h *Handler) ExtensionsEndpointHandler(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	http.Error(w, "Invalid endpoint", http.StatusInternalServerError)
+	writeMeshkitError(w, ErrExtensionEndpointNotRegistered(req.URL.Path), http.StatusNotFound)
 }
 
 func (h *Handler) LoadExtensionFromPackage(_ http.ResponseWriter, _ *http.Request, provider models.Provider) error {
@@ -79,7 +79,7 @@ func (h *Handler) ExtensionsVersionHandler(w http.ResponseWriter, _ *http.Reques
 		err := json.NewEncoder(w).Encode("extension not available for current provider")
 		if err != nil {
 			h.log.Error(models.ErrEncoding(err, "extension version"))
-			http.Error(w, models.ErrEncoding(err, "extension version").Error(), http.StatusNotFound)
+			writeMeshkitError(w, models.ErrEncoding(err, "extension version"), http.StatusNotFound)
 		}
 		return
 	}
@@ -95,7 +95,7 @@ func (h *Handler) ExtensionsVersionHandler(w http.ResponseWriter, _ *http.Reques
 	err := json.NewEncoder(w).Encode(extensionVersion)
 	if err != nil {
 		h.log.Error(models.ErrEncoding(err, "extension version"))
-		http.Error(w, models.ErrEncoding(err, "extension version").Error(), http.StatusNotFound)
+		writeMeshkitError(w, models.ErrEncoding(err, "extension version"), http.StatusNotFound)
 	}
 }
 
