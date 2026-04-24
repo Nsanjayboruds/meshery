@@ -288,14 +288,14 @@ func (h *Handler) KubernetesPingHandler(w http.ResponseWriter, req *http.Request
 		// Get the context associated with this ID
 		k8sContext, err := provider.GetK8sContext(token, connectionID)
 		if err != nil {
-			writeMeshkitError(w, ErrInvalidKubeContext(fmt.Errorf("not found"), connectionID), http.StatusNotFound)
+			writeMeshkitError(w, ErrInvalidKubeContext(err, connectionID), http.StatusNotFound)
 			return
 		}
 
 		// Create handler for the context
 		kubeclient, err := k8sContext.GenerateKubeHandler()
 		if err != nil {
-			writeMeshkitError(w, ErrInvalidKubeConfig(fmt.Errorf("no kube config for user"), ""), http.StatusNotFound)
+			writeMeshkitError(w, ErrInvalidKubeConfig(err, ""), http.StatusBadRequest)
 			return
 		}
 		version, err := kubeclient.KubeClient.ServerVersion()
