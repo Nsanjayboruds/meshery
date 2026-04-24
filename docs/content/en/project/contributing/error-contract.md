@@ -10,6 +10,13 @@ Every non-2xx HTTP response from Meshery Server carries a JSON body with
 `Content-Type: application/json; charset=utf-8`. Clients should parse the body
 as JSON before surfacing errors to users.
 
+> **Migration status:** the contract below is the target shape. A small number of
+> legacy endpoints still emit plain-text bodies during the migration tracked in
+> [`docs/superpowers/plans/2026-04-24-plaintext-response-migration.md`](../../../../superpowers/plans/2026-04-24-plaintext-response-migration.md).
+> Clients should implement the JSON-first contract now — all new code and
+> remediated endpoints follow it, and the plain-text escape hatches are being
+> removed wave by wave.
+
 ## Shape
 
 ```json
@@ -65,7 +72,7 @@ Do not use `http.Error` in handlers or provider code. It writes
 `Content-Type: text/plain` and strips MeshKit metadata, which crashes
 RTK Query's default baseQuery on the UI.
 
-Legitimate exceptions (enforced by `.github/.golangci.yml` allowlist):
+Legitimate exceptions (to be enforced by a `forbidigo` allowlist in `.github/.golangci.yml` once the migration lint guard lands — see Phase 2 of `docs/superpowers/plans/2026-04-24-plaintext-response-migration.md`):
 - SSE stream handlers (`Content-Type: text/event-stream`)
 - Kubernetes healthz probes (plain text is the probe contract)
 - Binary/tar/YAML downloads
