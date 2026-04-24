@@ -1,12 +1,14 @@
 package registry
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	mesheryctlflags "github.com/meshery/meshery/mesheryctl/internal/cli/pkg/flags"
+	"github.com/meshery/meshery/mesheryctl/pkg/utils"
 	meshkitRegistryUtils "github.com/meshery/meshkit/registry"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -344,34 +346,34 @@ func TestPreRunEValidation(t *testing.T) {
 
 func TestPreRunEValidationPartialCSVInputs(t *testing.T) {
 	tests := []struct {
-		name        string
-		flagValues  map[string]string
-		expectError bool
-		errorMsg    string
+		name          string
+		flagValues    map[string]string
+		expectError   bool
+		expectedError error
 	}{
 		{
 			name: "given model csv without component csv when prerune then returns missing component csv error",
 			flagValues: map[string]string{
 				"model-csv": "models.csv",
 			},
-			expectError: true,
-			errorMsg:    "--component-csv is required when --model-csv is provided",
+			expectError:   true,
+			expectedError: utils.ErrFlagsInvalid(errors.New("--component-csv is required when --model-csv is provided")),
 		},
 		{
 			name: "given component csv without model csv when prerune then returns missing model csv error",
 			flagValues: map[string]string{
 				"component-csv": "components.csv",
 			},
-			expectError: true,
-			errorMsg:    "--model-csv is required when --component-csv is provided",
+			expectError:   true,
+			expectedError: utils.ErrFlagsInvalid(errors.New("--model-csv is required when --component-csv is provided")),
 		},
 		{
 			name: "given relationship csv without model and component csv when prerune then returns relationship usage error",
 			flagValues: map[string]string{
 				"relationship-csv": "relationships.csv",
 			},
-			expectError: true,
-			errorMsg:    "--relationship-csv can only be used with --model-csv and --component-csv",
+			expectError:   true,
+			expectedError: utils.ErrFlagsInvalid(errors.New("--relationship-csv can only be used with --model-csv and --component-csv")),
 		},
 	}
 
@@ -385,8 +387,7 @@ func TestPreRunEValidationPartialCSVInputs(t *testing.T) {
 
 			err := generateCmd.PreRunE(generateCmd, []string{})
 			if tt.expectError {
-				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errorMsg)
+				utils.AssertMeshkitErrorsEqual(t, err, tt.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
