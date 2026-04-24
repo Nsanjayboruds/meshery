@@ -191,6 +191,7 @@ const (
 	ErrMissingResultIDCode                 = "meshery-server-1406"
 	ErrGenerateUUIDCode                    = "meshery-server-1407"
 	ErrMethodNotAllowedCode                = "meshery-server-1408"
+	ErrMissingRouteVariableCode            = "meshery-server-1409"
 )
 
 var (
@@ -818,4 +819,16 @@ func ErrGenerateUUID(err error) error {
 
 func ErrMethodNotAllowed(method string) error {
 	return errors.New(ErrMethodNotAllowedCode, errors.Alert, []string{"HTTP method not allowed for this endpoint"}, []string{fmt.Sprintf("Received %s, but the endpoint only accepts the methods registered on its route", method)}, []string{"The client used an HTTP verb the route does not support"}, []string{"Use one of the supported HTTP methods for this endpoint"})
+}
+
+// ErrMissingRouteVariable wraps requests where a required path/route variable
+// was not supplied by the caller. Used by handlers that rely on mux.Vars(r)
+// entries the router is expected to provide.
+func ErrMissingRouteVariable(name string, allowed ...string) error {
+	cause := fmt.Sprintf("Required route variable %q was missing from the request", name)
+	remedy := fmt.Sprintf("Include %q in the request path", name)
+	if len(allowed) > 0 {
+		remedy = fmt.Sprintf("Include %q (one of %s) in the request path", name, strings.Join(allowed, ", "))
+	}
+	return errors.New(ErrMissingRouteVariableCode, errors.Alert, []string{fmt.Sprintf("Missing required route variable %q", name)}, []string{cause}, []string{"The client called the endpoint without supplying a required path segment."}, []string{remedy})
 }
