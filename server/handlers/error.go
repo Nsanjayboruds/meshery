@@ -192,6 +192,7 @@ const (
 	ErrGenerateUUIDCode                    = "meshery-server-1407"
 	ErrMethodNotAllowedCode                = "meshery-server-1408"
 	ErrMissingRouteVariableCode            = "meshery-server-1409"
+	ErrRetrieveEventTypesCode              = "meshery-server-1410"
 )
 
 var (
@@ -616,6 +617,13 @@ func ErrCleanupCertificate(err error, obj string) error {
 
 func ErrGetEvents(err error) error {
 	return errors.New(ErrGetEventsCode, errors.Alert, []string{"Could not retrieve events"}, []string{err.Error()}, []string{"Request contains unknown query variables.", "Database is not reachable or corrupt."}, []string{"Check the request URL and try again."})
+}
+
+// ErrRetrieveEventTypes wraps failures from provider.GetEventTypes — the
+// endpoint that returns the catalogue of event categories + actions the
+// UI uses to populate the notification filter drop-downs.
+func ErrRetrieveEventTypes(err error) error {
+	return errors.New(ErrRetrieveEventTypesCode, errors.Alert, []string{"Could not retrieve event categories and actions"}, []string{err.Error()}, []string{"Database is not reachable or corrupt.", "Remote provider event-type endpoint is unavailable."}, []string{"Check database connectivity and provider availability, then retry."})
 }
 
 func ErrUpdateEvent(err error, id string) error {
