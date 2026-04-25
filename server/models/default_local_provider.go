@@ -135,18 +135,16 @@ func (l *DefaultLocalProvider) UnSetJWTCookie(_ http.ResponseWriter) {
 }
 
 func (l *DefaultLocalProvider) GetProviderCapabilities(w http.ResponseWriter, _ *http.Request, _ string) {
-	w.Header().Set("Content-Type", "application/json")
-	// KNOWN LATENT DEFECT (tracked separately): json.NewEncoder has already
-	// committed 200 OK + headers to the wire before Encode returns an error,
-	// so the WriteMeshkitError call below appends a second response body (and
-	// a second set of headers that get silently dropped) onto an already-200
-	// response. A follow-up will refactor to encode into a bytes.Buffer first.
-	encoder := json.NewEncoder(w)
-	if err := encoder.Encode(l.ProviderProperties); err != nil {
-		obj := "provider capabilities"
-		errObj := ErrEncoding(err, obj)
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(l.ProviderProperties); err != nil {
+		errObj := ErrEncoding(err, "provider capabilities")
 		l.Log.Error(errObj)
 		httputil.WriteMeshkitError(w, errObj, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := buf.WriteTo(w); err != nil {
+		l.Log.Error(ErrEncoding(err, "provider capabilities"))
 	}
 }
 
@@ -620,14 +618,16 @@ func (l *DefaultLocalProvider) ExtractToken(w http.ResponseWriter, _ *http.Reque
 		TokenCookieName:    "",
 	}
 	l.Log.Debug(fmt.Sprintf("token sent for meshery-provider %v", l.Name()))
-	// KNOWN LATENT DEFECT (tracked separately): json.NewEncoder has already
-	// committed 200 OK + headers to the wire before Encode returns an error,
-	// so the WriteMeshkitError call below appends a second response body (and
-	// a second set of headers that get silently dropped) onto an already-200
-	// response. A follow-up will refactor to encode into a bytes.Buffer first.
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(resp); err != nil {
+		errObj := ErrEncoding(err, "token")
+		l.Log.Error(errObj)
+		httputil.WriteMeshkitError(w, errObj, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := buf.WriteTo(w); err != nil {
 		l.Log.Error(ErrEncoding(err, "token"))
-		httputil.WriteMeshkitError(w, ErrEncoding(err, "token"), http.StatusInternalServerError)
 	}
 }
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 
 	"github.com/meshery/meshery/server/models"
 )
@@ -34,6 +35,13 @@ func (h *Handler) GetUserByIDHandler(w http.ResponseWriter, r *http.Request, _ *
 	}
 	resp, err := provider.GetUserByID(r, userID)
 	if err != nil {
+		if errors.Is(err, models.ErrUserIsSystemInstance) {
+			// The requested ID is this Meshery instance's own system UUID; it
+			// isn't a real user record. Return a 204 so callers can render a
+			// "system" placeholder without treating it as a fetch failure.
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		h.log.Error(ErrGetResult(err))
 		writeMeshkitError(w, ErrGetResult(err), http.StatusNotFound)
 		return
@@ -108,7 +116,7 @@ func (h *Handler) UserPrefsHandler(w http.ResponseWriter, req *http.Request, pre
 
 		dur := prefObj.LoadTestPreferences.Duration
 		if _, err := time.ParseDuration(dur); err != nil {
-			err = errors.Wrap(err, "unable to parse test duration")
+			err = pkgerrors.Wrap(err, "unable to parse test duration")
 			h.log.Error(ErrSavingUserPreference(err))
 			writeMeshkitError(w, ErrSavingUserPreference(err), http.StatusBadRequest)
 			return

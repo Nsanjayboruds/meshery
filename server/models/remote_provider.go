@@ -337,14 +337,17 @@ func (l *RemoteProvider) GetProviderCapabilities(w http.ResponseWriter, req *htt
 		l.Log.Error(ErrDBPut(errors.Join(err, fmt.Errorf("failed to write capabilities for the user %s to the server store", userID))))
 	}
 
-	// KNOWN LATENT DEFECT (tracked separately): json.NewEncoder has already
-	// committed 200 OK + headers to the wire before Encode returns an error,
-	// so the WriteMeshkitError call below appends a second response body (and
-	// a second set of headers that get silently dropped) onto an already-200
-	// response. A follow-up will refactor to encode into a bytes.Buffer first.
-	encoder := json.NewEncoder(w)
-	if err := encoder.Encode(providerProperties); err != nil {
-		httputil.WriteMeshkitError(w, ErrEncoding(err, "Provider Capablity"), http.StatusInternalServerError)
+	// Encode into a buffer first so that headers are not committed before we
+	// know whether encoding succeeded; this prevents a second JSON object from
+	// being appended to an already-started 200 response on encode failure.
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(providerProperties); err != nil {
+		httputil.WriteMeshkitError(w, ErrEncoding(err, "Provider Capability"), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := buf.WriteTo(w); err != nil {
+		l.Log.Error(ErrEncoding(err, "Provider Capability"))
 	}
 }
 
@@ -599,7 +602,11 @@ func (l *RemoteProvider) GetUserDetails(req *http.Request) (*User, error) {
 func (l *RemoteProvider) GetUserByID(req *http.Request, userID string) ([]byte, error) {
 	systemID := viper.GetString("INSTANCE_ID")
 	if userID == systemID {
-		return nil, nil
+		// Designs/events created by Meshery itself (not a logged-in user)
+		// carry the instance's UUID as user_id. The remote provider has no
+		// record for it; surface a typed sentinel so the handler can decide
+		// the response shape instead of every caller racing to 404.
+		return nil, ErrUserIsSystemInstance
 	}
 	if !l.Capabilities.IsSupported(UsersProfile) {
 		err := ErrInvalidCapability("UsersProfile", l.ProviderName)
@@ -4094,15 +4101,19 @@ func (l *RemoteProvider) ExtractToken(w http.ResponseWriter, r *http.Request) {
 		TokenCookieName:    tokenString,
 	}
 	l.Log.Debug("token sent for meshery-provider ", l.Name())
-	// KNOWN LATENT DEFECT (tracked separately): json.NewEncoder has already
-	// committed 200 OK + headers to the wire before Encode returns an error,
-	// so the WriteMeshkitError call below appends a second response body (and
-	// a second set of headers that get silently dropped) onto an already-200
-	// response. A follow-up will refactor to encode into a bytes.Buffer first.
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		err = ErrEncoding(err, "Auth Details")
+	// Encode into a buffer first so that headers are not committed before we
+	// know whether encoding succeeded; this prevents a second JSON object from
+	// being appended to an already-started 200 response on encode failure.
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(resp); err != nil {
+		errObj := ErrEncoding(err, "Auth Details")
+		l.Log.Error(errObj)
+		httputil.WriteMeshkitError(w, errObj, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := buf.WriteTo(w); err != nil {
 		l.Log.Error(ErrEncoding(err, "Auth Details"))
-		httputil.WriteMeshkitError(w, err, http.StatusInternalServerError)
 	}
 }
 

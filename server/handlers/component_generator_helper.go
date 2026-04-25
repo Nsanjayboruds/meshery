@@ -29,15 +29,15 @@ import (
 
 func (h *Handler) handleError(rw http.ResponseWriter, err error, logMsg string) {
 	h.log.Error(err)
-	// The caller supplies a human-readable logMsg that is typically a
-	// description of what the server was trying to do when err fired.
-	// Preserve that context by wiring logMsg through the JSON body while
-	// keeping err available for MeshKit metadata when it wraps one.
+	// The caller supplies a human-readable logMsg describing what the server
+	// was trying to do when err fired. Wrap err with logMsg so the client-facing
+	// error field carries both the MeshKit metadata from err and the operation
+	// context from logMsg.
 	if err == nil {
 		writeJSONError(rw, logMsg, http.StatusInternalServerError)
 		return
 	}
-	writeMeshkitError(rw, err, http.StatusInternalServerError)
+	writeMeshkitError(rw, fmt.Errorf("%s: %w", logMsg, err), http.StatusInternalServerError)
 }
 
 func (h *Handler) sendSuccessResponse(rw http.ResponseWriter, userID core.Uuid, provider models.Provider, message string, errMsg string, response *models.RegistryAPIResponse, token string) {
