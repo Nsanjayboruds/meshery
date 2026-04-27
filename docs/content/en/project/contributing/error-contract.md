@@ -10,17 +10,22 @@ Every non-2xx HTTP response from Meshery Server carries a JSON body with
 `Content-Type: application/json; charset=utf-8`. Clients should parse the body
 as JSON before surfacing errors to users.
 
-> **Migration status:** the JSON contract is enforced for all server endpoints
-> in `server/handlers/` and `server/models/*provider*.go`. The `forbidigo` lint
-> rule was added in advisory mode in PR
-> [#18919](https://github.com/meshery/meshery/pull/18919) (CI currently runs
-> with `--new-from-rev=origin/master`, so newly introduced `http.Error` calls
-> in handlers/models block merge while pre-existing usage is surfaced
-> non-blockingly); PR
-> [#18927](https://github.com/meshery/meshery/pull/18927) flips it to fully
-> blocking. Legitimate exceptions are SSE stream handlers
-> (`events_streamer.go`, `load_test_handler.go`), Kubernetes healthz probes,
-> the static-asset UI handler, binary/tar/YAML downloads, and HTTP redirects.
+> **Migration status:** the JSON contract is enforced across the `./server`
+> Go module by a `forbidigo` lint rule that blocks any new `http.Error` call
+> at CI time, configured in
+> [`.github/.golangci.yml`](https://github.com/meshery/meshery/blob/master/.github/.golangci.yml).
+> The migration landed in PR
+> [#18919](https://github.com/meshery/meshery/pull/18919) and the lint guard
+> was flipped from advisory to fully blocking in PR
+> [#18927](https://github.com/meshery/meshery/pull/18927). Legitimate
+> non-JSON responders are handled in one of three ways: a file-level allowlist
+> in `.github/.golangci.yml` for the Kubernetes healthz probe handler
+> (`k8s_healthz_handler.go`) and the static-asset UI handler
+> (`ui_handler.go`); SSE stream handlers (`events_streamer.go`,
+> `load_test_handler.go`) that don't call `http.Error` at all (they emit
+> error events through the active SSE writer instead); and binary/tar/YAML
+> downloads and HTTP redirects, which use `w.Write` or `http.Redirect`
+> rather than `http.Error` and so are not governed by the lint rule.
 
 ## Shape
 
@@ -104,9 +109,27 @@ The provider layer (`server/models/remote_provider.go`,
 `server/models/default_local_provider.go`) follows this pattern — see commit
 `ed1ce9f25c` for reference call sites.
 
-Legitimate exceptions (enforced by a `forbidigo` allowlist in `.github/.golangci.yml`; the lint guard was added in advisory mode in PR [#18919](https://github.com/meshery/meshery/pull/18919) and is being flipped to fully blocking in PR [#18927](https://github.com/meshery/meshery/pull/18927)):
-- SSE stream handlers, e.g. `events_streamer.go` and `load_test_handler.go` (`Content-Type: text/event-stream`)
-- Kubernetes healthz probes, e.g. `k8s_healthz_handler.go` (plain text is the probe contract)
-- Static-asset UI handler (`ui_handler.go`) — asset-resolution errors, not API surface
-- Binary/tar/YAML downloads
-- HTTP redirects (no body)
+Legitimate exceptions, organised by how each is enforced. The `forbidigo`
+lint rule (in [`.github/.golangci.yml`](https://github.com/meshery/meshery/blob/master/.github/.golangci.yml))
+matches `http.Error` codebase-wide; some non-JSON responders sidestep it by
+not calling `http.Error` at all, while two files are exempted via a
+file-level allowlist. See PR
+[#18919](https://github.com/meshery/meshery/pull/18919) (migration) and
+[#18927](https://github.com/meshery/meshery/pull/18927) (lint guard
+blocking) for context.
+
+- **File-level allowlist in `.github/.golangci.yml`** — entire file is exempt
+  because plain text is the contract there, not an internal detail:
+  - `k8s_healthz_handler.go` — Kubernetes healthz probe contract
+  - `ui_handler.go` — serves static HTML; any `http.Error` call would relate
+    to asset resolution, not API surface
+- **Doesn't call `http.Error` at all** — these sites emit non-JSON for
+  legitimate reasons but use other write mechanisms, so the lint rule does
+  not apply:
+  - SSE stream handlers (`events_streamer.go`, `load_test_handler.go`) emit
+    error events through the active SSE writer (`Content-Type:
+    text/event-stream`) rather than `http.Error`, which would corrupt the
+    stream by trying to re-set headers after they have been flushed.
+  - Binary/tar/YAML downloads use `w.Write(bytes)` with the appropriate
+    `Content-Type`.
+  - HTTP redirects use `http.Redirect`.
