@@ -1958,7 +1958,11 @@ func (h *Handler) convertV1alpha2ToV1beta3(mesheryPattern *models.MesheryPattern
 		// Wrap so the JSON error envelope returned to the client carries
 		// MeshKit metadata (code, severity, suggested_remediation) instead
 		// of just the bare conversion message.
-		return nil, "", ErrConvertPattern(err)
+		wrappedErr := ErrConvertPattern(err)
+		eventBuilder.WithSeverity(events.Error).
+			WithDescription(fmt.Sprintf("Failed to migrate design \"%s\" to current schema version", mesheryPattern.Name)).
+			WithMetadata(map[string]interface{}{"error": wrappedErr})
+		return nil, "", wrappedErr
 	}
 
 	v1beta3PatternFile.ID = *mesheryPattern.ID
@@ -1969,8 +1973,9 @@ func (h *Handler) convertV1alpha2ToV1beta3(mesheryPattern *models.MesheryPattern
 	err = mapModelRelatedData(h.registryManager, &v1beta3PatternFile)
 	if err != nil {
 		wrappedErr := ErrGetComponentDefinition(err)
-		eventBuilder.WithDescription("Design converted to v1beta3 format but failed to assign styles and metadata").
-			WithMetadata(map[string]interface{}{"error": wrappedErr, "id": *mesheryPattern.ID}).WithSeverity(events.Warning)
+		eventBuilder.WithSeverity(events.Error).
+			WithDescription(fmt.Sprintf("Failed to enrich converted design \"%s\" with styles and metadata", mesheryPattern.Name)).
+			WithMetadata(map[string]interface{}{"error": wrappedErr, "id": *mesheryPattern.ID})
 		return nil, "", wrappedErr
 	}
 
