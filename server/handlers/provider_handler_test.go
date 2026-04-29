@@ -171,7 +171,7 @@ func TestProviderUIHandler_LoopGuards(t *testing.T) {
 		wantCookieValue  string // empty means assert no cookie set
 	}{
 		{
-			name:             "kanvas.new regression: PLAYGROUND=true, PROVIDER unset → must NOT loop",
+			name:             "production playground regression: PLAYGROUND=true, PROVIDER unset → must NOT loop",
 			playgroundBuild:  true,
 			providerOverride: "",
 			providers:        registered,
