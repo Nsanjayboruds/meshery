@@ -546,6 +546,10 @@ func runRelationshipEvaluation(
 		if r == nil {
 			return
 		}
+		// Stack stays server-side: ErrPolicyEval flows the inner error
+		// string into the JSON longDescription returned to API clients,
+		// so the full stack is logged here and only the panic value
+		// propagates to errCh / coalesced followers / the response body.
 		panicErr := fmt.Errorf("panic during relationship evaluation: %v", r)
 		log.Error(fmt.Errorf("%s\n%s", panicErr.Error(), debug.Stack()))
 		tracker.publish(designKey, evalResult{err: panicErr})

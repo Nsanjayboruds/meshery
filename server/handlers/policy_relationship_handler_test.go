@@ -75,31 +75,32 @@ func TestRunRelationshipEvaluation_RecoversPanic(t *testing.T) {
 	}
 }
 
-func TestRunRelationshipEvaluation_PanicWithCancelledContext(t *testing.T) {
-	// If the leader has already given up via ctx.Done() the requesting
-	// client is gone and errCh has no reader. A blocking send would leak
-	// this goroutine — recovery must use a non-blocking send.
+func TestRunRelationshipEvaluation_PanicDoesNotDeadlock(t *testing.T) {
+	// If the leader has already given up — typically via the surrounding
+	// handler's evalCtx.Done() case returning before this goroutine
+	// finishes — the request handler is no longer reading errCh. A
+	// blocking send from inside the recover path would then leak this
+	// goroutine forever. Use unbuffered channels with no reader and
+	// trigger a real panic so the recover-path's non-blocking send is
+	// what's actually under test (the early ctx-cancellation guard
+	// short-circuits before eval() is called and exercises a different
+	// path).
 	tracker := newEvaluationTracker()
 	tracker.acquire("design-2")
 
-	// Unbuffered channels: a blocking send here would deadlock and the
-	// goroutine would never return. The test's timeout asserts non-blocking.
 	respCh := make(chan pattern.EvaluationResponse)
 	errCh := make(chan error)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
 
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		runRelationshipEvaluation(
-			ctx,
+			context.Background(),
 			newTestLogger(t),
 			tracker,
 			"design-2",
 			func() (pattern.EvaluationResponse, error) {
-				panic("should not be called when ctx already cancelled")
+				panic("synthetic engine explosion with no receiver")
 			},
 			respCh,
 			errCh,
@@ -109,7 +110,7 @@ func TestRunRelationshipEvaluation_PanicWithCancelledContext(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		t.Fatal("goroutine deadlocked with no receiver on errCh")
+		t.Fatal("goroutine deadlocked on panic with no receiver")
 	}
 }
 
