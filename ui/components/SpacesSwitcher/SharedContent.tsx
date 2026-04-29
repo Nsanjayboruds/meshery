@@ -224,9 +224,7 @@ const SharedContent = () => {
               isLoading={isLoading}
               isFetching={isFetching}
               designs={designsData?.patterns}
-              hasMore={
-                designsData?.totalCount > (filters.designsPage + 1) * designsData?.pageSize
-              }
+              hasMore={designsData?.totalCount > (filters.designsPage + 1) * designsData?.pageSize}
               totalCount={designsData?.totalCount}
               refetch={refetch}
             />

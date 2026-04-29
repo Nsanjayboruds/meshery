@@ -142,9 +142,7 @@ const DesignViewListItem = ({
                     title={getFullFormattedTime(selectedItem.updatedAt)}
                     placement="bottom"
                   >
-                    <StyledUpdatedText>
-                      {getRelativeTime(selectedItem.updatedAt)}
-                    </StyledUpdatedText>
+                    <StyledUpdatedText>{getRelativeTime(selectedItem.updatedAt)}</StyledUpdatedText>
                   </CustomTooltip>
                 }
               />

@@ -246,9 +246,7 @@ function K8sContextMenu({
   }
 
   useEffect(() => {
-    setTransformProperty(
-      (prev) => prev + (contexts.totalCount ? contexts.totalCount * 3.125 : 0),
-    );
+    setTransformProperty((prev) => prev + (contexts.totalCount ? contexts.totalCount * 3.125 : 0));
   }, []);
   const [isConnectionOpenModal, setIsConnectionOpenModal] = useState(false);
 
