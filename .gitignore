@@ -14,7 +14,6 @@
 
 .DS_Store
 .dccache
-.vscode/
 .cusorignore
 *.config
 .claude
@@ -84,8 +83,8 @@ allure-results/
 playwright-report/
 
 install/docker-extension/vm/vm
-.env
 ui/.env
 *.env
 */.env
 docs/hugo_stats.json
+config.bat
